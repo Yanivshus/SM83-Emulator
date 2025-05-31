@@ -1,7 +1,6 @@
 use std::{fs};
 
 
-
 struct Cpu {
     registers: Registers,
 }
@@ -31,9 +30,8 @@ struct Registers {
     pc: u16
 }
 
-
+#[allow(dead_code)]
 impl Registers {
-
     fn get_carry(self: &Self, elc: u8) -> bool{
         return get_bits(elc,self.f);
     }
@@ -90,7 +88,7 @@ struct Mmu {
 }
 
 enum MmuError {
-    
+
 }
 
 impl Mmu {
@@ -103,7 +101,7 @@ impl Mmu {
         };
         //
         // slize to check if the nintedo logo match
-        if !check_logo(&gb_file[GbFileLocations::LOGO_S as usize..(GbFileLocations::LOGO_E as usize + 1)]) {
+        if !check_logo(&gb_file[GbFileLocations::LogoS as usize..(GbFileLocations::LogoE as usize + 1)]) {
             
         }
         return None;
@@ -114,19 +112,20 @@ impl Mmu {
     }
 }
 
+#[allow(dead_code)]
 enum GbFileLocations {
-    ENTRY_POINT_S = 0x100,
-    LOGO_S = 0x104,
-    LOGO_E = 0x133,
-    TITLE_S = 0x134,
-    TOTLE_E = 0x145,
-    CGB_MODE = 0x143,
-    LICENSEE_CODE_S = 0x144,
-    LICENSEE_CODE_E = 0x146,
-    CARTRIDGE_TYPE = 0x147,
-    ROM_SIZE = 0x148,
-    RAM_SIZE = 0x149,
-    HEADER_CHECKSUM = 0x14D
+    EntryPoint = 0x100,
+    LogoS = 0x104,
+    LogoE = 0x133,
+    TitleS = 0x134,
+    TitleE = 0x145,
+    CgbMode = 0x143,
+    LicenseeCodeS = 0x144,
+    LicenseeCodeE = 0x146,
+    CartirdgeType = 0x147,
+    RomSize = 0x148,
+    RamSize = 0x149,
+    HeaderCheckSum = 0x14D
 }
 
 fn main() {
