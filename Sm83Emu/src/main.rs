@@ -1,16 +1,10 @@
-use std::fs;
+use std::{fs};
 
 
 
 struct Cpu {
     registers: Registers,
 }
-
-
-// // ment to to be the container for the ram and rom, each memory operation will happen from here.
-// struct Memory {
-//     ram: [u8; 0xFFFF],
-// }
 
 
 fn get_bits(index: u8, number: u8) -> bool{
@@ -74,44 +68,67 @@ impl Registers {
 
 }
 
-
-
-struct GameBoyFile {
-    buffer: Vec<u8>
+// will represent the program opcodes.
+enum Opcode {
+    Add(u8,u8) // adding to 8 bits registers together 
 }
 
-struct ProblemCreatingFile;
-impl GameBoyFile {
+fn check_logo(barr: &[u8]) -> bool {
+    // represent to original nintendo tile bmp
+    let original_bytes:Vec<u8> = vec![0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+                                    0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+                                    0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E];
+    if *barr == *original_bytes.as_slice() {
+        return true;
+    }
+    false
+}
+
+// for now we will work without MBC -> small games
+struct Mmu {
+    buffer: Vec<u8>,
+}
+
+enum MmuError {
+    
+}
+
+impl Mmu {
     // TODO : Make more self explanatory error message -> use Result<Self, Some Error Enum>
-    fn new(file_name: &String) -> Result<Self, E> {
+    fn new(file_name: &String) -> Result<Self> {
         let gb_file_result= fs::read(file_name);
         let gb_file = match gb_file_result {
             Ok(file) => file,
             Err(error) => panic!("Problem reading file {error:?}")
         };
+        //
+        // slize to check if the nintedo logo match
+        if !check_logo(&gb_file[GbFileLocations::LOGO_S as usize..(GbFileLocations::LOGO_E as usize + 1)]) {
+            
+        }
+        return None;
+    }
+    
+    fn extract_opcodes(self: &Self) -> Vec<Opcode> {
+        todo!()
     }
 }
 
-fn main() {
-    let reg = Registers {
-        a: 1,
-        b: 1,
-        c: 1,
-        d: 1,
-        e: 1,
-        f: 0b11001010,
-        h: 1,
-        l: 1,
-        sp: 1,
-        ie: 2,
-        ir: 2,
-        pc: 2
-    };
+enum GbFileLocations {
+    ENTRY_POINT_S = 0x100,
+    LOGO_S = 0x104,
+    LOGO_E = 0x133,
+    TITLE_S = 0x134,
+    TOTLE_E = 0x145,
+    CGB_MODE = 0x143,
+    LICENSEE_CODE_S = 0x144,
+    LICENSEE_CODE_E = 0x146,
+    CARTRIDGE_TYPE = 0x147,
+    ROM_SIZE = 0x148,
+    RAM_SIZE = 0x149,
+    HEADER_CHECKSUM = 0x14D
+}
 
-    let cpu = Cpu{
-        registers: reg
-    };
-    let p = cpu.registers.get_carry(5);
-    println!("{p}");
-    println!("Hello, world!");
+fn main() {
+    let gb = Mmu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
 }
