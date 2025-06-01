@@ -1,6 +1,7 @@
-use std::{fs};
+use core::fmt;
+use std::{fs, io};
 
-
+#[allow(dead_code)]
 struct Cpu {
     registers: Registers,
 }
@@ -14,7 +15,7 @@ fn get_bits(index: u8, number: u8) -> bool{
     return true;
 }
 
-
+#[allow(dead_code)]
 struct Registers {
     a: u8,
     b: u8,
@@ -87,24 +88,38 @@ struct Mmu {
     buffer: Vec<u8>,
 }
 
+#[derive(Debug)] // means that the error only will implement the debug trait.
 enum MmuError {
+    NintendoLogoDoesntExists,
+    FileReadingErr(io::Error),
+}
 
+impl fmt::Display for MmuError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NintendoLogoDoesntExists => write!(f, "The Nintendo logo doesn't exists in the binary, finished execution"),
+            Self::FileReadingErr(err) => write!(f, "io problem {err:?}")
+        }
+    }
 }
 
 impl Mmu {
     // TODO : Make more self explanatory error message -> use Result<Self, Some Error Enum>
-    fn new(file_name: &String) -> Result<Self> {
+    fn new(file_name: &String) -> Result<Self, MmuError> {
         let gb_file_result= fs::read(file_name);
         let gb_file = match gb_file_result {
             Ok(file) => file,
-            Err(error) => panic!("Problem reading file {error:?}")
+            Err(error) => return Err(MmuError::FileReadingErr(error))
         };
         //
         // slize to check if the nintedo logo match
         if !check_logo(&gb_file[GbFileLocations::LogoS as usize..(GbFileLocations::LogoE as usize + 1)]) {
-            
+            return Err(MmuError::NintendoLogoDoesntExists);
         }
-        return None;
+        return Ok(Mmu{
+            buffer: gb_file
+        })
+        
     }
     
     fn extract_opcodes(self: &Self) -> Vec<Opcode> {
