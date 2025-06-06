@@ -57,7 +57,7 @@ impl fmt::Display for MmuError {
 }
 
 pub struct Mmu {
-    buffer: Vec<u8>,
+    pub buffer: Vec<u8>,
 }
 
 impl Mmu {
