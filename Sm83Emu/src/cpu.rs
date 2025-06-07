@@ -1,14 +1,22 @@
-
-
-
-
+use std::fmt;
 
 #[allow(dead_code)]
 pub struct Cpu {
-    registers: Registers,
+    pub registers: Registers,
 }
 
+impl Cpu {
+    // it doesnt matter if the registers arent reference, you will be using only the cpu registers.
+    fn new(reg: Registers) -> Self{
+        return Cpu{
+            registers: reg.clone() // clone so they will be always in the scope
+        };
+    }
+}
+
+
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,
@@ -22,6 +30,43 @@ pub struct Registers {
     pub ir: u8,
     pub ie: u8,
     pub pc: u16
+}
+
+impl Default for Registers {
+    fn default() -> Self {
+        Registers { a: (0x01),
+            b: (0xFF),
+            c: (0x13),
+            d: (0),
+            e: (0xC1),
+            f: (0), 
+            h: (0x84), 
+            l: (0x03), 
+            sp: (0xFFFE), 
+            ir: (0), 
+            ie: (0), 
+            pc: (0x100) 
+        }
+    }
+}
+
+impl fmt::Display for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "
+        registers =>
+        a: {}, 
+        b: {},
+        c: {},
+        d: {},
+        e: {:b},
+        f: {},
+        h: {},
+        l: {},
+        sp: {},
+        ir: {},
+        ie: {},
+        pc: {}", self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.ir, self.ie, self.pc)
+    }
 }
 
 

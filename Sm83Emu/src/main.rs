@@ -1,5 +1,7 @@
 use core::panic;
 
+use cpu::Registers;
+
 use crate::memory::{Mmu};
 use crate::cpu::{Cpu};
 mod memory;
@@ -11,6 +13,8 @@ mod cpu;
 // for now we will work without MBC -> small games
 
 fn main() {
+    let reg = Registers::default();
+    println!("{reg}");
 
     let gb: Result<Mmu, memory::MmuError> = Mmu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
     let fl = match gb {
