@@ -1,16 +1,21 @@
 use std::fmt;
+use crate::memory::memory::Mmu; 
+
+
 
 #[allow(dead_code)]
 pub struct Cpu {
     pub registers: Registers,
+    pub mmu: Mmu
 }
 
 impl Cpu {
-    // it doesnt matter if the registers arent reference, you will be using only the cpu registers.
-    fn new(reg: Registers) -> Self{
-        return Cpu{
-            registers: reg.clone() // clone so they will be always in the scope
-        };
+    fn new(cartridge: &String) -> Self {
+        // create default registers and mapped mmu.
+        Cpu { registers: (Registers::default()),
+            mmu: (Mmu::new(cartridge)) 
+        }
+
     }
 }
 
@@ -34,6 +39,7 @@ pub struct Registers {
 
 impl Default for Registers {
     fn default() -> Self {
+        // default values from: http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
         Registers { a: (0x01),
             b: (0xFF),
             c: (0x13),
@@ -50,22 +56,23 @@ impl Default for Registers {
     }
 }
 
+// trait to print the registers in a nice format
 impl fmt::Display for Registers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "
         registers =>
-        a: {}, 
-        b: {},
-        c: {},
-        d: {},
+        a: 0x{:#X}, 
+        b: 0x{:#X},
+        c: 0x{:#X},
+        d: 0x{:#X},
         e: {:b},
-        f: {},
-        h: {},
-        l: {},
-        sp: {},
-        ir: {},
-        ie: {},
-        pc: {}", self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.ir, self.ie, self.pc)
+        f: 0x{:#X},
+        h: 0x{:#X},
+        l: 0x{:#X},
+        sp: 0x{:#X},
+        ir: 0x{:#X},
+        ie: 0x{:#X},
+        pc: 0x{:#X}", self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.ir, self.ie, self.pc)
     }
 }
 
@@ -123,3 +130,8 @@ pub fn set_flag(index: u8, number: u8) -> u8{
 pub fn get_flag(index: u8, number: u8) -> u8{
     number & (1 << index)
 }
+
+
+
+
+
