@@ -8,10 +8,10 @@ pub mod cartridge {
     // check if a given set of bytes is equal to the logo binary.
     fn check_logo(barr: &[u8]) -> bool {
     // represent to original nintendo tile bmp
-    let original_bytes:Vec<u8> = vec![0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
-                                    0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
-                                    0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E];
-    return *barr == *original_bytes.as_slice();
+        let original_bytes:Vec<u8> = vec![0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+                                        0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+                                        0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E];
+        return *barr == *original_bytes.as_slice();
     }
 
     // compute checksum by given formula and check if equal
@@ -43,7 +43,7 @@ pub mod cartridge {
         HeaderCheckSum = 0x14D
     }
 
-
+    #[allow(dead_code)]
     #[derive(Debug)] // means that the error only will implement the debug trait.
     pub enum CartridgeErr {
         NintendoLogoDoesntExists,
@@ -87,7 +87,9 @@ pub mod cartridge {
 
 
 pub mod memory {
-    use super::cartridge::{self, get_cartridge_buffer};
+    use crate::memory::cartridge;
+
+    use super::cartridge::get_cartridge_buffer;
  
     pub struct Mmu {
         ram: [u8 ;0xFFFF] // will store the main program memory.
@@ -95,9 +97,9 @@ pub mod memory {
 
     impl Mmu {
         pub fn new(cartridge_name: &String) -> Self {
-            let crt = get_cartridge_buffer(cartridge_name);
+            let crt: Result<Vec<u8>, cartridge::CartridgeErr> = get_cartridge_buffer(cartridge_name);
             // get the buffer or else panic and print error.
-            let cartridge_buffer = match crt {
+            let cartridge_buffer: Vec<u8> = match crt {
                 Ok(mm) => mm,
                 Err(error) => panic!("{:?}",error)
             };
