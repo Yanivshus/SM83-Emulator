@@ -88,11 +88,12 @@ pub mod cartridge {
 
 pub mod memory {
     use crate::memory::cartridge;
-
-    use super::cartridge::get_cartridge_buffer;
+    use cartridge::get_cartridge_buffer;
  
+
+    const ROM_SIZE: usize = 0xFFFF;
     pub struct Mmu {
-        ram: [u8 ;0xFFFF] // will store the main program memory.
+        pub rom: [u8 ;0xFFFF] // will store the main program memory.
     }
 
     impl Mmu {
@@ -103,8 +104,16 @@ pub mod memory {
                 Ok(mm) => mm,
                 Err(error) => panic!("{:?}",error)
             };
+            
+            // copy array to rom, mapping it.
+            let mut rom: [u8; ROM_SIZE] = [0; ROM_SIZE];
+            for n in 0..cartridge_buffer.len() {
+                rom[n] = cartridge_buffer[n];
+            }
 
-            todo!("map cartridge to correct places")
+            return Mmu {
+                rom
+            };
         }
     }
 }
