@@ -14,5 +14,5 @@ mod cpu;
 
 fn main() {
     let mm = Mmu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
-    print!("{:#X}",mm.rom.len());
+    print!("{:#X}",mm.memory_map.len());
 }
