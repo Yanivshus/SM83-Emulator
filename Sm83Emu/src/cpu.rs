@@ -1,18 +1,7 @@
 use std::fmt;
 use crate::memory::memory::Mmu; 
 
-#[allow(dead_code)]
-
 // non perfiexd opcodes -> load and aritmatic ops
-enum Opcodes {
-
-}
-
-#[allow(dead_code)]
-// cb perfiexd opcodes -> what's left.
-enum Cb_Opcodes {
-
-}
 #[allow(dead_code)]
 pub struct Cpu {
     pub registers: Registers,
@@ -29,15 +18,21 @@ impl Cpu {
     }
 
     // execute an instruction
+    // TODO : think of design or opcodes fetching
     pub fn fetch_opcode(self: &Self) {
         let op: u8 = self.mmu.read_byte(self.registers.pc);
-        // match op {
-        //     0xCB => {
+        if op == 0xCB {
+            // match all perfixed. 
+        }
 
-        //     }
-        // }
+        if (op) & 0xF8 == 0x80 {
+            let reg: u8 = op & 0x07;
+        }
         
     }
+
+    
+
 }
 
 
