@@ -1,3 +1,4 @@
+use core::panic;
 use std::fmt;
 use crate::memory::memory::Mmu; 
 
@@ -6,6 +7,15 @@ use crate::memory::memory::Mmu;
 pub struct Cpu {
     pub registers: Registers,
     pub mmu: Mmu
+}
+
+
+enum Instruction {
+    LD(Target, Target),
+}
+
+enum Target {
+    B,C,D,E,H,L,Hl,A
 }
 
 impl Cpu {
@@ -17,19 +27,35 @@ impl Cpu {
         }
     }
 
+    fn fetch_byte(self: &Self) -> u8 {
+        let byte: u8 = self.mmu.read_byte(self.registers.pc);
+        let (_, res) = self.registers.pc.overflowing_add(1); // adding one to pc after fetching a byte.
+        if res { // won't happen probably.
+            panic!("PC CAN'T OVERFLOW FOR NOW -> UNTIL MBC IMPLEMENTED.");
+        }
+        byte
+    }
+
+    fn fetch_word(self: &Self) -> u16 {
+        let low: u16 = self.fetch_byte() as u16;
+        let high: u16 = self.fetch_byte() as u16;
+
+        (high << 8) | low
+    }
+
     // execute an instruction
     // TODO : think of design or opcodes fetching
-    pub fn fetch_opcode(self: &Self) {
-        let op: u8 = self.mmu.read_byte(self.registers.pc);
-        if op == 0xCB {
-            // match all perfixed. 
-        }
+    pub fn decode_instrcution(self: &Self) -> Instruction{
+        
+        
 
-        if (op) & 0xF8 == 0x80 {
-            let reg: u8 = op & 0x07;
-        }
+
+        
+
         
     }
+
+
 
     
 
