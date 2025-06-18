@@ -10,8 +10,35 @@ pub struct Cpu {
 }
 
 
-enum Instruction {
-    LD(Target, Target),
+/*
+enum with all of the cpu instructions.
+registers with some of the letters small is the same as [reg] => meaning value at address value of reg.
+*/
+pub enum Instruction {
+    NOP, //00
+    LDBCN16(u16), //01
+    LdBcA, //02
+    INCBC, //03
+    INCB, // 04
+    DECB, //05
+    LDBN8(u8), // 06
+    RLCA, // 07
+    Lda16Sp(u16), // 08
+    ADDHLBC, // 09
+    LdABc, //0A
+    DECBC, //0B
+    INCC, // 0C
+    DECC, // 0D
+    LDCN8(u8), // 0E
+    RRCA, // 0F
+    STOPN8(u8), //10
+    LDDEN16(u16), //11
+    LddEA, //12
+
+
+
+
+    UNKNOWN
 }
 
 enum Target {
@@ -19,6 +46,8 @@ enum Target {
 }
 
 impl Cpu {
+    
+
     fn new(cartridge: &String) -> Self {
         // create default registers and mapped mmu.
         Cpu { 
@@ -45,8 +74,53 @@ impl Cpu {
 
     // execute an instruction
     // TODO : think of design or opcodes fetching
-    pub fn decode_instrcution(self: &Self) -> Instruction{
-        
+    pub fn decode_instrcution(self: &Self) -> Instruction {
+        let op = self.fetch_byte();
+        match op {
+            0x00 => Instruction::NOP,
+            0x01 => {
+                let word = self.fetch_word();
+                Instruction::LDBCN16(word)
+            },
+            0x02 => Instruction::LdBcA,
+            0x03 => Instruction::INCBC,
+            0x04 => Instruction::INCB,
+            0x05 => Instruction::DECB,
+            0x06 => {
+                let byte = self.fetch_byte();
+                Instruction::LDBN8(byte)
+            },
+            0x07 => Instruction::RLCA,
+            0x08 => {
+                let word = self.fetch_word();
+                Instruction::Lda16Sp(word) // address to look inside
+            }
+            0x09 => Instruction::ADDHLBC,
+            0x0A => Instruction::LdABc,
+            0x0B => Instruction::DECBC,
+            0x0C => Instruction::INCC,
+            0x0D => Instruction::DECC,
+            0x0E => {
+                let byte = self.fetch_byte();
+                Instruction::LDCN8(byte)
+            },
+            0x0F => Instruction::RRCA,
+            0x10 => {
+                let byte = self.fetch_byte();
+                Instruction::STOPN8(byte)
+            }
+            0x11 => {
+                let word = self.fetch_word();
+                Instruction::LDDEN16(word)
+            }
+            0x12 => Instruction::LddEA,
+            // TODO! finish the rest of the opcodes and then implement them.
+
+
+
+            _ => Instruction::UNKNOWN
+            
+        }
         
 
 
@@ -166,10 +240,12 @@ impl Registers {
 
 
 
-pub fn set_flag(index: u8, number: u8) -> u8{
+
+
+fn set_flag(index: u8, number: u8) -> u8{
     number | (1 << index)
 }
-pub fn get_flag(index: u8, number: u8) -> u8{
+fn get_flag(index: u8, number: u8) -> u8{
     number & (1 << index)
 }
 
