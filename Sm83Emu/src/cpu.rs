@@ -34,7 +34,11 @@ pub enum Instruction {
     STOPN8(u8), //10
     LDDEN16(u16), //11
     LddEA, //12
-
+    INCDE, //13
+    INCD, //14
+    DECD, //15
+    LDDN8(u8), // 16
+    RLA , //17
 
 
 
@@ -114,10 +118,15 @@ impl Cpu {
                 Instruction::LDDEN16(word)
             }
             0x12 => Instruction::LddEA,
-            // TODO! finish the rest of the opcodes and then implement them.
-
-
-
+            0x13 => Instruction::INCDE,
+            0x14 => Instruction::INCD,
+            0x15 => Instruction::DECD,
+            0x16 => {
+                let byte = self.fetch_byte();
+                Instruction::LDDN8(byte)
+            },
+            0x17 => Instruction::RLA,
+            
             _ => Instruction::UNKNOWN
             
         }
