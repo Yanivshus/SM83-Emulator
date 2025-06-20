@@ -156,6 +156,12 @@ pub mod memory {
             return self.memory_map[address as usize];
         }
 
+
+        // used in realy rear cases
+        pub fn read_sbyte(self: &Self, address: u16) -> i8 {
+            return self.memory_map[address as usize].try_into().unwrap();
+        }
+
         pub fn write_byte(self: &mut Self, address: u16, data: u8)  {
             self.memory_map[address as usize] = data; // write data to certion address.
         }
