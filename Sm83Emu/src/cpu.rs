@@ -10,6 +10,119 @@ pub struct Cpu {
 }
 
 
+#[allow(dead_code)]
+#[derive(Clone, Copy)]
+pub struct Registers {
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub f: u8,
+    pub h: u8,
+    pub l: u8,
+    pub sp: u16,
+    pub ir: u8,
+    pub ie: u8,
+    pub pc: u16
+}
+
+impl Default for Registers {
+    fn default() -> Self {
+        // default values from: http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
+        Registers { a: (0x01),
+            b: (0xFF),
+            c: (0x13),
+            d: (0),
+            e: (0xC1),
+            f: (0), 
+            h: (0x84), 
+            l: (0x03), 
+            sp: (0xFFFE), 
+            ir: (0), 
+            ie: (0), 
+            pc: (0x150) 
+        }
+    }
+}
+
+// trait to print the registers in a nice format
+impl fmt::Display for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "
+        registers =>
+        a: {:#X}, 
+        b: {:#X},
+        c: {:#X},
+        d: {:#X},
+        e: {:b},
+        f: {:#X},
+        h: {:#X},
+        l: {:#X},
+        sp: {:#X},
+        ir: {:#X},
+        ie: {:#X},
+        pc: {:#X}", self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.ir, self.ie, self.pc)
+    }
+}
+
+
+#[allow(dead_code)]
+pub enum Flags {
+    C = 0, // Carry Flag 
+    N = 1, // Add/Subtract
+    Pv = 2, // 	Parity/Overflow Flag
+    Y = 3, // unused
+    H = 4, // Half Carry Flag 
+    X = 5, // unused
+    Z = 6, // zero flag
+    S = 7, // sign flag
+}
+
+#[allow(dead_code)]
+impl Registers {
+
+    // methods to get registers as whole
+    pub fn get_bc(self: &Self) -> u16{
+        return (self.b as u16) << 8 | (self.c as u16);
+    }
+
+    pub fn set_bc(self: &mut Self, bc: u16) {
+        self.b = (bc >> 8) as u8;
+        self.c = (bc >> 8) as u8;
+    }
+
+    pub fn get_de(self: &Self) -> u16{
+        return (self.d as u16) << 8 | (self.e as u16);
+    }
+
+    pub fn set_de(self: &mut Self, de: u16) {
+        self.d = (de >> 8) as u8;
+        self.e = (de >> 8) as u8;
+    }
+
+    pub fn get_hl(self: &Self) -> u16{
+        return (self.h as u16) << 8 | (self.l as u16);
+    }
+
+    pub fn set_hl(self: &mut Self, hl: u16) {
+        self.h = (hl >> 8) as u8;
+        self.l = (hl >> 8) as u8;
+    }
+
+}
+
+
+
+
+
+fn set_flag(index: u8, number: u8) -> u8{
+    number | (1 << index)
+}
+fn get_flag(index: u8, number: u8) -> u8{
+    number & (1 << index)
+}
+
 /*
 enum with all of the cpu instructions.
 registers with some of the letters small is the same as [reg] => meaning value at address value of reg.
@@ -276,14 +389,10 @@ pub enum Instruction {
     UNKNOWN
 }
 
-enum Target {
-    B,C,D,E,H,L,Hl,A
-}
-
 impl Cpu {
     
 
-    fn new(cartridge: &String) -> Self {
+    pub fn new(cartridge: &String) -> Self {
         // create default registers and mapped mmu.
         Cpu { 
             registers: (Registers::default()),
@@ -291,25 +400,27 @@ impl Cpu {
         }
     }
 
-    fn fetch_byte(self: &Self) -> u8 {
+    fn fetch_byte(self: &mut Self) -> u8 {
         let byte: u8 = self.mmu.read_byte(self.registers.pc);
-        let (_, res) = self.registers.pc.overflowing_add(1); // adding one to pc after fetching a byte.
-        if res { // won't happen probably.
+        let (result, err) = self.registers.pc.overflowing_add(1); // adding one to pc after fetching a byte.
+        self.registers.pc = result;
+        if err { // won't happen probably.
             panic!("PC CAN'T OVERFLOW FOR NOW -> UNTIL MBC IMPLEMENTED.");
         }
         byte
     }
 
-    fn fetch_sbyte(self: &Self) -> i8 {
+    fn fetch_sbyte(self: &mut Self) -> i8 {
         let byte: i8 = self.mmu.read_sbyte(self.registers.pc);
-        let (_, res) = self.registers.pc.overflowing_add(1); // adding one to pc after fetching a byte.
-        if res { // won't happen probably.
+        let (result, err) = self.registers.pc.overflowing_add(1); // adding one to pc after fetching a byte.
+        self.registers.pc = result;
+        if err {
             panic!("PC CAN'T OVERFLOW FOR NOW -> UNTIL MBC IMPLEMENTED.");
         }
         byte
     }
 
-    fn fetch_word(self: &Self) -> u16 {
+    fn fetch_word(self: &mut Self) -> u16 {
         let low: u16 = self.fetch_byte() as u16;
         let high: u16 = self.fetch_byte() as u16;
 
@@ -318,7 +429,7 @@ impl Cpu {
 
     // execute an instruction
     // TODO : think of design or opcodes fetching
-    pub fn decode_instrcution(self: &Self) -> Instruction {
+    pub fn decode_instrcution(self: &mut Self) -> Instruction {
         let op = self.fetch_byte();
         match op {
             0x00 => Instruction::NOP,
@@ -709,31 +820,31 @@ impl Cpu {
         } 
     }
 
-    fn execute_instruction(self: &Self, instruction: &Instruction) {
+    pub fn execute_instruction(self: &Self, instruction: &Instruction) {
         match instruction {
             Instruction::NOP => println!("{}",0x00),
-            Instruction::LDBCn16(u16) => println!("{}",0x01),
+            Instruction::LDBCn16(val) => println!("{}",0x01),
             Instruction::LDBCA => println!("{}",0x02),
             Instruction::INCBC => println!("{}",0x03),
             Instruction::INCB => println!("{}",0x04),
             Instruction::DECB => println!("{}",0x05),
-            Instruction::LDBn8(u8) => println!("{}",0x06),
+            Instruction::LDBn8(val) => println!("{}",0x06),
             Instruction::RLCA => println!("{}",0x07),
-            Instruction::LDa16SP(u16) => println!("{}",0x08),
+            Instruction::LDa16SP(val) => println!("{}",0x08),
             Instruction::ADDHLBC => println!("{}",0x09),
             Instruction::LDABC => println!("{}",0x0A),
             Instruction::DECBC => println!("{}",0x0B),
             Instruction::INCC => println!("{}",0x0C),
             Instruction::DECC => println!("{}",0x0D),
-            Instruction::LDCn8(u8) => println!("{}",0x0E),
+            Instruction::LDCn8(val) => println!("{}",0x0E),
             Instruction::RRCA => println!("{}",0x0F),
-            Instruction::STOPn8(u8) => println!("{}",0x10),
-            Instruction::LDDEn16(u16) => println!("{}",0x11),
+            Instruction::STOPn8(val) => println!("{}",0x10),
+            Instruction::LDDEn16(val) => println!("{}",0x11),
             Instruction::LDDEA => println!("{}",0x12),
             Instruction::INCDE => println!("{}",0x13),
             Instruction::INCD => println!("{}",0x14),
             Instruction::DECD => println!("{}",0x15),
-            Instruction::LDDn8(u8) => println!("{}",0x16),
+            Instruction::LDDn8(val) => println!("{}",0x16),
             Instruction::RLA => println!("{}",0x17),
             Instruction::JRe8(i8) => println!("{}",0x18),
             Instruction::ADDHLDE => println!("{}",0x19),
@@ -741,39 +852,39 @@ impl Cpu {
             Instruction::DECDE => println!("{}",0x1B),
             Instruction::INCE => println!("{}",0x1C),
             Instruction::DECE => println!("{}",0x1D),
-            Instruction::LDEn8(u8) => println!("{}",0x1E),
+            Instruction::LDEn8(val) => println!("{}",0x1E),
             Instruction::RRA => println!("{}",0x1F),
-            Instruction::JRNZe8(i8) => println!("{}",0x20),
-            Instruction::LDHLn16(u16) => println!("{}",0x21),
+            Instruction::JRNZe8(val) => println!("{}",0x20),
+            Instruction::LDHLn16(val) => println!("{}",0x21),
             Instruction::LDHLA => println!("{}",0x22),
             Instruction::INCHL => println!("{}",0x23),
             Instruction::INCH => println!("{}",0x24),
             Instruction::DECH => println!("{}",0x25),
-            Instruction::LDHn8(u8) => println!("{}",0x26),
+            Instruction::LDHn8(val) => println!("{}",0x26),
             Instruction::DAA => println!("{}",0x27),
-            Instruction::JRZe8(i8) => println!("{}",0x28),
+            Instruction::JRZe8(val) => println!("{}",0x28),
             Instruction::ADDHLHL => println!("{}",0x29),
             Instruction::LDAHL => println!("{}",0x2A),
             Instruction::DECHL => println!("{}",0x2B),
             Instruction::INCL => println!("{}",0x2C),
             Instruction::DECL => println!("{}",0x2D),
-            Instruction::LDLn8(u8) => println!("{}",0x2E),
+            Instruction::LDLn8(val) => println!("{}",0x2E),
             Instruction::CPL => println!("{}",0x2F),
-            Instruction::JRNCe8(i8) => println!("{}",0x30),
-            Instruction::LDSPn16(u16) => println!("{}",0x31),
+            Instruction::JRNCe8(val) => println!("{}",0x30),
+            Instruction::LDSPn16(val) => println!("{}",0x31),
             Instruction::LDHLA32 => println!("{}",0x32),
             Instruction::INCSP => println!("{}",0x33),
             Instruction::INCHL34 => println!("{}",0x34),
             Instruction::DECHL35 => println!("{}",0x35),
-            Instruction::LDHLn8(u8) => println!("{}",0x36),
+            Instruction::LDHLn8(val) => println!("{}",0x36),
             Instruction::SCF => println!("{}",0x37),
-            Instruction::JRCe8(i8) => println!("{}",0x38),
+            Instruction::JRCe8(val) => println!("{}",0x38),
             Instruction::ADDHLSP => println!("{}",0x39),
             Instruction::LDAHL3A => println!("{}",0x3A),
             Instruction::DECSP => println!("{}",0x3B),
             Instruction::INCA => println!("{}",0x3C),
             Instruction::DECA => println!("{}",0x3D),
-            Instruction::LDAn8(u8) => println!("{}",0x3E),
+            Instruction::LDAn8(val) => println!("{}",0x3E),
             Instruction::CCF => println!("{}",0x3F),
             Instruction::LDBB => println!("{}",0x40),
             Instruction::LDBC => println!("{}",0x41),
@@ -905,35 +1016,35 @@ impl Cpu {
             Instruction::CPAA => println!("{}",0xBF),
             Instruction::RETNZ => println!("{}",0xC0),
             Instruction::POPBC => println!("{}",0xC1),
-            Instruction::JPNZa16(u16) => println!("{}",0xC2),
-            Instruction::JPa16(u16) => println!("{}",0xC3),
-            Instruction::CALLNZa16(u16) => println!("{}",0xC4),
+            Instruction::JPNZa16(val) => println!("{}",0xC2),
+            Instruction::JPa16(val) => println!("{}",0xC3),
+            Instruction::CALLNZa16(val) => println!("{}",0xC4),
             Instruction::PUSHBC => println!("{}",0xC5),
-            Instruction::ADDAn8(u8) => println!("{}",0xC6),
+            Instruction::ADDAn8(val) => println!("{}",0xC6),
             Instruction::RST00 => println!("{}",0xC7),
             Instruction::RETZ => println!("{}",0xC8),
             Instruction::RET => println!("{}",0xC9),
-            Instruction::JPZa16(u16) => println!("{}",0xCA),
+            Instruction::JPZa16(val) => println!("{}",0xCA),
             Instruction::PREFIX => println!("{}",0xCB),
-            Instruction::CALLZa16(u16) => println!("{}",0xCC),
-            Instruction::CALLa16(u16) => println!("{}",0xCD),
-            Instruction::ADCAn8(u8) => println!("{}",0xCE),
+            Instruction::CALLZa16(val) => println!("{}",0xCC),
+            Instruction::CALLa16(val) => println!("{}",0xCD),
+            Instruction::ADCAn8(val) => println!("{}",0xCE),
             Instruction::RST08 => println!("{}",0xCF),
             Instruction::RETNC => println!("{}",0xD0),
             Instruction::POPDE => println!("{}",0xD1),
-            Instruction::JPNCa16(u16) => println!("{}",0xD2),
+            Instruction::JPNCa16(val) => println!("{}",0xD2),
             Instruction::ILLEGAL_D3 => println!("{}",0xD3),
-            Instruction::CALLNCa16(u16) => println!("{}",0xD4),
+            Instruction::CALLNCa16(val) => println!("{}",0xD4),
             Instruction::PUSHDE => println!("{}",0xD5),
-            Instruction::SUBAn8(u8) => println!("{}",0xD6),
+            Instruction::SUBAn8(val) => println!("{}",0xD6),
             Instruction::RST10 => println!("{}",0xD7),
             Instruction::RETC => println!("{}",0xD8),
             Instruction::RETI => println!("{}",0xD9),
-            Instruction::JPCa16(u16) => println!("{}",0xDA),
+            Instruction::JPCa16(val) => println!("{}",0xDA),
             Instruction::ILLEGAL_DB => println!("{}",0xDB),
-            Instruction::CALLCa16(u16) => println!("{}",0xDC),
+            Instruction::CALLCa16(val) => println!("{}",0xDC),
             Instruction::ILLEGAL_DD => println!("{}",0xDD),
-            Instruction::SBCAn8(u8) => println!("{}",0xDE),
+            Instruction::SBCAn8(val) => println!("{}",0xDE),
             Instruction::RST18 => println!("{}",0xDF),
             Instruction::LDHa8A => println!("{}",0xE0),
             Instruction::POPHL => println!("{}",0xE1),
@@ -941,15 +1052,15 @@ impl Cpu {
             Instruction::ILLEGAL_E3 => println!("{}",0xE3),
             Instruction::ILLEGAL_E4 => println!("{}",0xE4),
             Instruction::PUSHHL => println!("{}",0xE5),
-            Instruction::ANDAn8(u8) => println!("{}",0xE6),
+            Instruction::ANDAn8(val) => println!("{}",0xE6),
             Instruction::RST20 => println!("{}",0xE7),
-            Instruction::ADDSPe8(i8) => println!("{}",0xE8),
+            Instruction::ADDSPe8(val) => println!("{}",0xE8),
             Instruction::JPHL => println!("{}",0xE9),
-            Instruction::LDa16A(u16) => println!("{}",0xEA),
+            Instruction::LDa16A(val) => println!("{}",0xEA),
             Instruction::ILLEGAL_EB => println!("{}",0xEB),
             Instruction::ILLEGAL_EC => println!("{}",0xEC),
             Instruction::ILLEGAL_ED => println!("{}",0xED),
-            Instruction::XORAn8(u8) => println!("{}",0xEE),
+            Instruction::XORAn8(val) => println!("{}",0xEE),
             Instruction::RST28 => println!("{}",0xEF),
             Instruction::LDHAa8 => println!("{}",0xF0),
             Instruction::POPAF => println!("{}",0xF1),
@@ -957,15 +1068,15 @@ impl Cpu {
             Instruction::DI => println!("{}",0xF3),
             Instruction::ILLEGAL_F4 => println!("{}",0xF4),
             Instruction::PUSHAF => println!("{}",0xF5),
-            Instruction::ORAn8(u8) => println!("{}",0xF6),
+            Instruction::ORAn8(val) => println!("{}",0xF6),
             Instruction::RST30 => println!("{}",0xF7),
-            Instruction::LDHLSPe8(i8) => println!("{}",0xF8),
+            Instruction::LDHLSPe8(val) => println!("{}",0xF8),
             Instruction::LDSPHL => println!("{}",0xF9),
-            Instruction::LDAa16(u16) => println!("{}",0xFA),
+            Instruction::LDAa16(val) => println!("{}",0xFA),
             Instruction::EI => println!("{}",0xFB),
             Instruction::ILLEGAL_FC => println!("{}",0xFC),
             Instruction::ILLEGAL_FD => println!("{}",0xFD),
-            Instruction::CPAn8(u8) => println!("{}",0xFE),
+            Instruction::CPAn8(val) => println!("{}",0xFE),
             Instruction::RST38 => println!("{}",0xFF),
             Instruction::UNKNOWN => panic!("ahhhhhhhhhhhhhhh"),
             _ => panic!("ah"),
@@ -978,118 +1089,6 @@ impl Cpu {
 }
 
 
-#[allow(dead_code)]
-#[derive(Clone, Copy)]
-pub struct Registers {
-    pub a: u8,
-    pub b: u8,
-    pub c: u8,
-    pub d: u8,
-    pub e: u8,
-    pub f: u8,
-    pub h: u8,
-    pub l: u8,
-    pub sp: u16,
-    pub ir: u8,
-    pub ie: u8,
-    pub pc: u16
-}
-
-impl Default for Registers {
-    fn default() -> Self {
-        // default values from: http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
-        Registers { a: (0x01),
-            b: (0xFF),
-            c: (0x13),
-            d: (0),
-            e: (0xC1),
-            f: (0), 
-            h: (0x84), 
-            l: (0x03), 
-            sp: (0xFFFE), 
-            ir: (0), 
-            ie: (0), 
-            pc: (0x100) 
-        }
-    }
-}
-
-// trait to print the registers in a nice format
-impl fmt::Display for Registers {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "
-        registers =>
-        a: 0x{:#X}, 
-        b: 0x{:#X},
-        c: 0x{:#X},
-        d: 0x{:#X},
-        e: {:b},
-        f: 0x{:#X},
-        h: 0x{:#X},
-        l: 0x{:#X},
-        sp: 0x{:#X},
-        ir: 0x{:#X},
-        ie: 0x{:#X},
-        pc: 0x{:#X}", self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.ir, self.ie, self.pc)
-    }
-}
-
-
-#[allow(dead_code)]
-pub enum Flags {
-    C = 0, // Carry Flag 
-    N = 1, // Add/Subtract
-    Pv = 2, // 	Parity/Overflow Flag
-    Y = 3, // unused
-    H = 4, // Half Carry Flag 
-    X = 5, // unused
-    Z = 6, // zero flag
-    S = 7, // sign flag
-}
-
-#[allow(dead_code)]
-impl Registers {
-
-    // methods to get registers as whole
-    pub fn get_bc(self: &Self) -> u16{
-        return (self.b as u16) << 8 | (self.c as u16);
-    }
-
-    pub fn set_bc(self: &mut Self, bc: u16) {
-        self.b = (bc >> 8) as u8;
-        self.c = (bc >> 8) as u8;
-    }
-
-    pub fn get_de(self: &Self) -> u16{
-        return (self.d as u16) << 8 | (self.e as u16);
-    }
-
-    pub fn set_de(self: &mut Self, de: u16) {
-        self.d = (de >> 8) as u8;
-        self.e = (de >> 8) as u8;
-    }
-
-    pub fn get_hl(self: &Self) -> u16{
-        return (self.h as u16) << 8 | (self.l as u16);
-    }
-
-    pub fn set_hl(self: &mut Self, hl: u16) {
-        self.h = (hl >> 8) as u8;
-        self.l = (hl >> 8) as u8;
-    }
-
-}
-
-
-
-
-
-fn set_flag(index: u8, number: u8) -> u8{
-    number | (1 << index)
-}
-fn get_flag(index: u8, number: u8) -> u8{
-    number & (1 << index)
-}
 
 
 

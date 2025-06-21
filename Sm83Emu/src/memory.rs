@@ -91,12 +91,12 @@ pub mod memory {
     use cartridge::get_cartridge_buffer;
  
 
-    const ROM_SIZE: usize = 0xFFFF;
+    const ROM_SIZE: usize = 0x10000;
     pub const VRAM_START: usize = 0x8000;
     pub const VRAM_END: usize = 0x9FFF;
 
     pub struct Mmu {
-        pub memory_map: [u8 ;0xFFFF] // will store the main program memory.
+        pub memory_map: [u8 ; ROM_SIZE] // will store the main program memory.
     }
 
     impl Mmu {
