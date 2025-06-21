@@ -5,20 +5,8 @@ mod cpu;
 
 fn main() {
     let mut cpu = Cpu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
-    let inst = cpu.decode_instrcution();
-    cpu.execute_instruction(&inst);
+    cpu.registers.a = 0b11001100;
+    cpu.execute_instruction(&cpu::Instruction::RLCA);
+    println!("{}", cpu.registers);
+    
 }

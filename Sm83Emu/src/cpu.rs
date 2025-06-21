@@ -56,7 +56,7 @@ impl fmt::Display for Registers {
         c: {:#X},
         d: {:#X},
         e: {:b},
-        f: {:#X},
+        f: {:b},
         h: {:#X},
         l: {:#X},
         sp: {:#X},
@@ -110,17 +110,23 @@ impl Registers {
         self.l = (hl >> 8) as u8;
     }
 
+    pub fn set_flag_value(self: &mut Self, flag: Flags ,value: FlagValues) {
+        self.f = set_flag(self.f, flag, value);
+    }
 }
 
 
-
-
-
-fn set_flag(index: u8, number: u8) -> u8{
-    number | (1 << index)
+// made enum of 1 and 0 so you can put other value like 2 for setting a bit. (undefined behavior)
+pub enum FlagValues {
+    ON = 1,
+    OFF = 0
 }
-fn get_flag(index: u8, number: u8) -> u8{
-    number & (1 << index)
+
+fn set_flag(number: u8, index: Flags, value: FlagValues) -> u8{
+    number | ((value as u8) << (index as u8)) // set the given number in bit index to value (0 or 1).
+}
+fn get_flag(number: u8, index: Flags) -> u8{
+    number & (1 << (index as u8))
 }
 
 /*
@@ -390,8 +396,6 @@ pub enum Instruction {
 }
 
 impl Cpu {
-    
-
     pub fn new(cartridge: &String) -> Self {
         // create default registers and mapped mmu.
         Cpu { 
@@ -820,16 +824,35 @@ impl Cpu {
         } 
     }
 
-    pub fn execute_instruction(self: &Self, instruction: &Instruction) {
+    pub fn execute_instruction(self: &mut Self, instruction: &Instruction) {
         match instruction {
-            Instruction::NOP => println!("{}",0x00),
-            Instruction::LDBCn16(val) => println!("{}",0x01),
-            Instruction::LDBCA => println!("{}",0x02),
-            Instruction::INCBC => println!("{}",0x03),
-            Instruction::INCB => println!("{}",0x04),
-            Instruction::DECB => println!("{}",0x05),
-            Instruction::LDBn8(val) => println!("{}",0x06),
-            Instruction::RLCA => println!("{}",0x07),
+            Instruction::NOP => return,
+            Instruction::LDBCn16(val) => {
+                self.registers.set_bc(*val);
+            },
+            Instruction::LDBCA => {
+                self.registers.set_bc(self.registers.a as u16); // hope it won't break.
+            },
+            Instruction::INCBC => {
+                self.registers.set_bc(self.registers.get_bc().overflowing_add(1).0);
+            },
+            Instruction::INCB => {
+                self.registers.b = self.registers.b.overflowing_add(1).0;
+            },
+            Instruction::DECB => {
+                self.registers.b = self.registers.b.overflowing_sub(1).0;
+            },
+            Instruction::LDBn8(val) => {
+                self.registers.b = *val;
+            },
+            Instruction::RLCA => {
+                let carry = self.registers.a & 0x80; // get lmb 
+                self.registers.set_flag_value(Flags::Z, FlagValues::OFF);
+                self.registers.set_flag_value(Flags::N, FlagValues::OFF);
+                self.registers.set_flag_value(Flags::H, FlagValues::OFF);
+                self.registers.set_flag_value(Flags::C, if carry != 0 {FlagValues::ON} else {FlagValues::OFF}); // set carry if there is one.
+                self.registers.a = self.registers.a << 1 | (carry >> 7);
+            },
             Instruction::LDa16SP(val) => println!("{}",0x08),
             Instruction::ADDHLBC => println!("{}",0x09),
             Instruction::LDABC => println!("{}",0x0A),
@@ -1081,11 +1104,7 @@ impl Cpu {
             Instruction::UNKNOWN => panic!("ahhhhhhhhhhhhhhh"),
             _ => panic!("ah"),
         }
-    }
-
-
-    
-
+    }    
 }
 
 
@@ -1093,4 +1112,16 @@ impl Cpu {
 
 
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rlca() {
+        let mut cpu = Cpu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
+        cpu.registers.a = 0b11001100;
+        cpu.execute_instruction(&Instruction::RLCA);
+        assert_eq!(cpu.registers.a, 0b10011001);
+    }
+}
 
