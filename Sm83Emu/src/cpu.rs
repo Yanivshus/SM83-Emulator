@@ -69,14 +69,10 @@ impl fmt::Display for Registers {
 
 #[allow(dead_code)]
 pub enum Flags {
-    C = 0, // Carry Flag 
-    N = 1, // Add/Subtract
-    Pv = 2, // 	Parity/Overflow Flag
-    Y = 3, // unused
-    H = 4, // Half Carry Flag 
-    X = 5, // unused
-    Z = 6, // zero flag
-    S = 7, // sign flag
+    C = 4, // Carry Flag 
+    H = 5, // Half carry flag
+    N = 6, // sub
+    Z = 7, // zero flag
 }
 
 #[allow(dead_code)]
@@ -88,8 +84,9 @@ impl Registers {
     }
 
     pub fn set_bc(self: &mut Self, bc: u16) {
-        self.b = (bc >> 8) as u8;
-        self.c = (bc >> 8) as u8;
+        self.c = (bc & 0xFF) as u8;
+        self.b = ((bc >> 8) & 0xFF) as u8;
+        
     }
 
     pub fn get_de(self: &Self) -> u16{
@@ -97,8 +94,8 @@ impl Registers {
     }
 
     pub fn set_de(self: &mut Self, de: u16) {
-        self.d = (de >> 8) as u8;
-        self.e = (de >> 8) as u8;
+        self.e = (de & 0xFF) as u8;
+        self.d = ((de >> 8) & 0xFF) as u8;
     }
 
     pub fn get_hl(self: &Self) -> u16{
@@ -106,8 +103,8 @@ impl Registers {
     }
 
     pub fn set_hl(self: &mut Self, hl: u16) {
-        self.h = (hl >> 8) as u8;
-        self.l = (hl >> 8) as u8;
+        self.l = (hl & 0xFF) as u8;
+        self.h = ((hl >> 8) & 0xFF) as u8;
     }
 
     pub fn set_flag_value(self: &mut Self, flag: Flags ,value: FlagValues) {
@@ -120,6 +117,24 @@ impl Registers {
 pub enum FlagValues {
     ON = 1,
     OFF = 0
+}
+
+impl From<bool> for FlagValues {
+    fn from(value: bool) -> Self {
+        if value {
+            return FlagValues::ON;
+        }
+        FlagValues::OFF
+    }
+}
+
+impl From<u8> for FlagValues {
+    fn from(value: u8) -> Self {
+        if value > 0 {
+            return FlagValues::ON;
+        }
+        FlagValues::OFF
+    }
 }
 
 fn set_flag(number: u8, index: Flags, value: FlagValues) -> u8{
@@ -850,11 +865,28 @@ impl Cpu {
                 self.registers.set_flag_value(Flags::Z, FlagValues::OFF);
                 self.registers.set_flag_value(Flags::N, FlagValues::OFF);
                 self.registers.set_flag_value(Flags::H, FlagValues::OFF);
-                self.registers.set_flag_value(Flags::C, if carry != 0 {FlagValues::ON} else {FlagValues::OFF}); // set carry if there is one.
+                self.registers.set_flag_value(Flags::C, FlagValues::from(carry)); // set carry if there is one.
                 self.registers.a = self.registers.a << 1 | (carry >> 7);
             },
-            Instruction::LDa16SP(val) => println!("{}",0x08),
-            Instruction::ADDHLBC => println!("{}",0x09),
+            Instruction::LDa16SP(val) => {
+                // put in working ram.
+                if (0xA000..=0xDFFF).contains(val) {
+                    self.mmu.write_byte(*val, ((self.registers.sp) & 0xFF) as u8);
+                    self.mmu.write_byte(*val + 1, (((self.registers.sp) & 0xFF) >> 8) as u8);
+                }
+                else {
+                    panic!("Writing to bad address!")
+                }  
+            }, 
+            Instruction::ADDHLBC => {
+                let half_carry = ((self.registers.get_hl() & 0xF) + (self.registers.get_bc() & 0xF)) > 0xF;
+                let (result, carry) = self.registers.get_hl().overflowing_add(self.registers.get_bc());
+                self.registers.set_flag_value(Flags::H, FlagValues::from(half_carry));
+                self.registers.set_flag_value(Flags::C, FlagValues::from(carry));
+                self.registers.set_flag_value(Flags::N, FlagValues::OFF);
+                self.registers.set_hl(result); // set result.
+
+            },
             Instruction::LDABC => println!("{}",0x0A),
             Instruction::DECBC => println!("{}",0x0B),
             Instruction::INCC => println!("{}",0x0C),
@@ -1123,5 +1155,17 @@ mod tests {
         cpu.execute_instruction(&Instruction::RLCA);
         assert_eq!(cpu.registers.a, 0b10011001);
     }
+
+    #[test]
+    fn test_addhlbc() {
+        let mut cpu = Cpu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
+        cpu.registers.set_hl(0x1234);
+        cpu.registers.set_bc(0x1);
+     
+        cpu.execute_instruction(&Instruction::ADDHLBC);
+        assert_eq!(cpu.registers.get_hl(), 0x1235);
+    }
 }
+
+
 
