@@ -854,8 +854,7 @@ impl Cpu {
                 self.registers.set_flag_value(Flags::Z, false);
                 self.registers.set_flag_value(Flags::N, false);
                 self.registers.set_flag_value(Flags::H, false);
-                self.registers
-                    .set_flag_value(Flags::C, carry); // set carry if there is one.
+                self.registers.set_flag_value(Flags::C, carry); // set carry if there is one.
                 self.registers.a = self.registers.a << 1 | (carry_val >> 7);
             }
             Instruction::LDa16SP(val) => {
@@ -876,10 +875,8 @@ impl Cpu {
                     .registers
                     .get_hl()
                     .overflowing_add(self.registers.get_bc());
-                self.registers
-                    .set_flag_value(Flags::H, half_carry);
-                self.registers
-                    .set_flag_value(Flags::C, carry);
+                self.registers.set_flag_value(Flags::H, half_carry);
+                self.registers.set_flag_value(Flags::C, carry);
                 self.registers.set_flag_value(Flags::N, false);
                 self.registers.set_hl(result); // set result.
             }

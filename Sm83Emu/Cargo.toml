@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.98"
+pixels = "0.15.0"
+wgpu = "25.0.2"
+winit = "0.29.0"

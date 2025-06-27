@@ -1,5 +1,7 @@
 use crate::cpu::Cpu;
+mod cartridge;
 mod cpu;
+mod gfx;
 mod memory;
 
 fn main() {
