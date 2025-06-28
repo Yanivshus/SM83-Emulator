@@ -1,7 +1,6 @@
 // module to handle Cartridge loading and verifying it
 // end result will return the buffer of the cartridge
 pub mod cartridge {
-    use std::error::Error;
     use std::fmt;
     use std::{fs, io};
 
