@@ -912,12 +912,27 @@ impl Cpu {
                 self.registers.set_flag_value(Flags::C, carry); // set carry if there is one.
                 self.registers.a = self.registers.a >> 1 | (carry_val << 7);
             },
-            Instruction::STOPn8(val) => println!("{}", 0x10),
-            Instruction::LDDEn16(val) => println!("{}", 0x11),
-            Instruction::LDDEA => println!("{}", 0x12),
-            Instruction::INCDE => println!("{}", 0x13),
-            Instruction::INCD => println!("{}", 0x14),
-            Instruction::DECD => println!("{}", 0x15),
+            Instruction::STOPn8(val) => {
+                panic!("STOP REACHED"); // for now.
+            },
+            Instruction::LDDEn16(val) => {
+                self.registers.set_de(*val);
+            },
+            Instruction::LDDEA => {
+                self.mmu.write_byte(self.registers.get_de(),self.registers.a);
+            },
+            Instruction::INCDE => {
+                let (res,_) = self.registers.get_de().overflowing_add(1);
+                self.registers.set_de(res);
+            },
+            Instruction::INCD => {
+                let (res,_) = self.registers.d.overflowing_add(1);
+                self.registers.d = res;
+            },
+            Instruction::DECD => {
+                let (res,_) = self.registers.d.overflowing_sub(1);
+                self.registers.d = res;
+            },,
             Instruction::LDDn8(val) => println!("{}", 0x16),
             Instruction::RLA => println!("{}", 0x17),
             Instruction::JRe8(i8) => println!("{}", 0x18),
@@ -1178,5 +1193,15 @@ mod tests {
 
         cpu.execute_instruction(&Instruction::ADDHLBC);
         assert_eq!(cpu.registers.get_hl(), 0x1235);
+    }
+
+    #[test]
+    fn test_rrca() {
+        let mut cpu = Cpu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
+        cpu.registers.a = 0b11001100;
+
+        cpu.execute_instruction(&Instruction::RRCA);
+        println!("{}", cpu.registers);
+        println!("{:b}", cpu.registers.a);
     }
 }
