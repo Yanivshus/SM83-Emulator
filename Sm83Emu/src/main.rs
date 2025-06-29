@@ -1,8 +1,8 @@
-// use crate::cpu::Cpu;
-// mod cartridge;
-// mod cpu;
+use crate::cpu::Cpu;
+mod cartridge;
+mod cpu;
 mod gfx;
-// mod memory;
+mod memory;
 
 
 use anyhow::Error;

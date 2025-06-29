@@ -31,18 +31,25 @@ def main():
     opjson = json.loads(file_data)
     list_rust_opcodes_without_byte = ""
     list_rust_opcodes_byte = ""
+    list_rust_opcodes_to_exectute = ""
+
     for opcode in range(0x00, 0x100):
         op = f"0x{opcode:02X}"
         full = get_name(opjson['unprefixed'][op])
-        list_rust_opcodes_without_byte += full + "\n"
+        
+        list_rust_opcodes_without_byte += full + ', //' + op + "\n"
         list_rust_opcodes_byte += op + " => Instruction::" + full + ",\n"
+        list_rust_opcodes_to_exectute += "Instruction::" + full + ' => println!("{}",' + op + '),\n'
 
     file_data1 = open("rust_generated_opcodes_without_byte.txt", "w")
     file_data1.write(list_rust_opcodes_without_byte)
 
-    
     file_data2 = open("rust_generated_opcodes.txt", "w")
     file_data2.write(list_rust_opcodes_byte)
+
+    file_data3 = open("rust_rust_opcodes_to_exectute.txt", "w")
+    file_data3.write(list_rust_opcodes_to_exectute)
+    
     
     
 

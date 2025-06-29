@@ -865,7 +865,7 @@ impl Cpu {
                     self.mmu
                         .write_byte(*val + 1, (((self.registers.sp) & 0xFF) >> 8) as u8);
                 } else {
-                    panic!("Writing to bad address!")
+                    panic!("Writing to bad address!");
                 }
             }
             Instruction::ADDHLBC => {
@@ -880,12 +880,38 @@ impl Cpu {
                 self.registers.set_flag_value(Flags::N, false);
                 self.registers.set_hl(result); // set result.
             }
-            Instruction::LDABC => println!("{}", 0x0A),
-            Instruction::DECBC => println!("{}", 0x0B),
-            Instruction::INCC => println!("{}", 0x0C),
-            Instruction::DECC => println!("{}", 0x0D),
-            Instruction::LDCn8(val) => println!("{}", 0x0E),
-            Instruction::RRCA => println!("{}", 0x0F),
+            Instruction::LDABC => {
+                if (0xA000..=0xDFFF).contains(&self.registers.get_bc()) {
+                    self.registers.a = self.mmu.read_byte(self.registers.get_bc())
+                }
+                else {
+                    panic!("Writing to bad address!");
+                }
+            },
+            Instruction::DECBC => {
+                let (res, _) = self.registers.get_bc().overflowing_sub(1);
+                self.registers.set_bc(res);
+            },
+            Instruction::INCC => {
+                let (res, _) = self.registers.c.overflowing_add(1);
+                self.registers.c = res;
+            },
+            Instruction::DECC => {
+                let (res, _) = self.registers.c.overflowing_sub(1);
+                self.registers.c = res;
+            },
+            Instruction::LDCn8(val) => {
+                self.registers.c = *val;
+            },
+            Instruction::RRCA => {
+                let carry_val = self.registers.a & 0x80; // get lmb 
+                let carry = carry_val != 0; // get lmb 
+                self.registers.set_flag_value(Flags::Z, false);
+                self.registers.set_flag_value(Flags::N, false);
+                self.registers.set_flag_value(Flags::H, false);
+                self.registers.set_flag_value(Flags::C, carry); // set carry if there is one.
+                self.registers.a = self.registers.a >> 1 | (carry_val << 7);
+            },
             Instruction::STOPn8(val) => println!("{}", 0x10),
             Instruction::LDDEn16(val) => println!("{}", 0x11),
             Instruction::LDDEA => println!("{}", 0x12),
