@@ -74,7 +74,5 @@ pub mod memory {
         pub fn write_byte(self: &mut Self, address: u16, data: u8) {
             self.memory_map[address as usize] = data; // write data to certion address.
         }
-
-        
     }
 }

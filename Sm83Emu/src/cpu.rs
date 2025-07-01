@@ -122,10 +122,19 @@ impl Registers {
     pub fn set_flag_value(self: &mut Self, flag: Flags, value: bool) {
         self.f = set_flag(self.f, flag, value);
     }
+
+    pub fn get_flag_value(self: &mut Self, flag: Flags) -> bool {
+        get_flag(self.f, flag) != 0
+    }
 }
 
 fn set_flag(number: u8, index: Flags, value: bool) -> u8 {
-    number | ((value as u8) << (index as u8)) // set the given number in bit index to value (0 or 1).
+    let mask = 1 << (index as u8);
+    if value {
+        number | mask     // set bit
+    } else {
+        number & !mask    // clear bit
+    }
 }
 fn get_flag(number: u8, index: Flags) -> u8 {
     number & (1 << (index as u8))
@@ -883,26 +892,25 @@ impl Cpu {
             Instruction::LDABC => {
                 if (0xA000..=0xDFFF).contains(&self.registers.get_bc()) {
                     self.registers.a = self.mmu.read_byte(self.registers.get_bc())
-                }
-                else {
+                } else {
                     panic!("Writing to bad address!");
                 }
-            },
+            }
             Instruction::DECBC => {
                 let (res, _) = self.registers.get_bc().overflowing_sub(1);
                 self.registers.set_bc(res);
-            },
+            }
             Instruction::INCC => {
                 let (res, _) = self.registers.c.overflowing_add(1);
                 self.registers.c = res;
-            },
+            }
             Instruction::DECC => {
                 let (res, _) = self.registers.c.overflowing_sub(1);
                 self.registers.c = res;
-            },
+            }
             Instruction::LDCn8(val) => {
                 self.registers.c = *val;
-            },
+            }
             Instruction::RRCA => {
                 let carry_val = self.registers.a & 0x80; // get lmb 
                 let carry = carry_val != 0; // get lmb 
@@ -911,34 +919,63 @@ impl Cpu {
                 self.registers.set_flag_value(Flags::H, false);
                 self.registers.set_flag_value(Flags::C, carry); // set carry if there is one.
                 self.registers.a = self.registers.a >> 1 | (carry_val << 7);
-            },
+            }
             Instruction::STOPn8(val) => {
                 panic!("STOP REACHED"); // for now.
-            },
+            }
             Instruction::LDDEn16(val) => {
                 self.registers.set_de(*val);
-            },
+            }
             Instruction::LDDEA => {
-                self.mmu.write_byte(self.registers.get_de(),self.registers.a);
-            },
+                self.mmu
+                    .write_byte(self.registers.get_de(), self.registers.a);
+            }
             Instruction::INCDE => {
-                let (res,_) = self.registers.get_de().overflowing_add(1);
+                let (res, _) = self.registers.get_de().overflowing_add(1);
+                self.registers.set_de(res);
+            }
+            Instruction::INCD => {
+                let (res, _) = self.registers.d.overflowing_add(1);
+                self.registers.d = res;
+            }
+            Instruction::DECD => {
+                let (res, _) = self.registers.d.overflowing_sub(1);
+                self.registers.d = res;
+            }
+            Instruction::LDDn8(val) => {
+                self.registers.d = *val;
+            }
+            Instruction::RLA => {
+                let carry_val = self.registers.a & 0x80;
+                let carry = carry_val != 0;
+                let old_carry = self.registers.get_flag_value(Flags::C);
+                self.registers.set_flag_value(Flags::C, carry);
+                self.registers.set_flag_value(Flags::H, false);
+                self.registers.set_flag_value(Flags::N, false);
+                self.registers.set_flag_value(Flags::Z, false);
+                let new_a = (self.registers.a << 1) | (old_carry as u8);
+                self.registers.a = new_a;
+            }
+            Instruction::JRe8(val) => {
+                let new_pc = (self.registers.pc as i16).wrapping_add(*val as i16) as u16;
+                self.registers.pc = new_pc;
+            },
+            Instruction::ADDHLDE => {
+                let (res, _) = self.registers.get_hl().overflowing_add(self.registers.get_de());
+                self.registers.set_hl(res);
+            },
+            Instruction::LDADE => {
+                if (0xA000..=0xDFFF).contains(&self.registers.get_de()) {
+                    self.registers.a = self.mmu.read_byte(self.registers.get_de());
+                }
+                else{
+                    panic!("problem at ld a, [de]");
+                }
+            },
+            Instruction::DECDE => {
+                let (res, _) = self.registers.get_de().overflowing_sub(1);
                 self.registers.set_de(res);
             },
-            Instruction::INCD => {
-                let (res,_) = self.registers.d.overflowing_add(1);
-                self.registers.d = res;
-            },
-            Instruction::DECD => {
-                let (res,_) = self.registers.d.overflowing_sub(1);
-                self.registers.d = res;
-            },,
-            Instruction::LDDn8(val) => println!("{}", 0x16),
-            Instruction::RLA => println!("{}", 0x17),
-            Instruction::JRe8(i8) => println!("{}", 0x18),
-            Instruction::ADDHLDE => println!("{}", 0x19),
-            Instruction::LDADE => println!("{}", 0x1A),
-            Instruction::DECDE => println!("{}", 0x1B),
             Instruction::INCE => println!("{}", 0x1C),
             Instruction::DECE => println!("{}", 0x1D),
             Instruction::LDEn8(val) => println!("{}", 0x1E),
@@ -1203,5 +1240,15 @@ mod tests {
         cpu.execute_instruction(&Instruction::RRCA);
         println!("{}", cpu.registers);
         println!("{:b}", cpu.registers.a);
+    }
+
+    #[test]
+    fn test_rla() {
+        let mut cpu = Cpu::new(&String::from("/home/kaish/Downloads/Calc.gb"));
+        cpu.registers.a = 0b11101100;
+        cpu.registers.set_flag_value(Flags::C, false);
+        cpu.execute_instruction(&Instruction::RLA);
+        println!("{:b}", cpu.registers.a);
+        println!("{}", cpu.registers.get_flag_value(Flags::C));
     }
 }
