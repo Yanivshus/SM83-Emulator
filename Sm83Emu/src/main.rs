@@ -4,7 +4,7 @@ mod cpu;
 mod gfx;
 mod memory;
 
-use anyhow::Error;
+//use anyhow::{Error, Ok};
 use pixels::{Pixels, SurfaceTexture};
 
 use winit::{
@@ -13,6 +13,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::Window,
 };
+use rand::{ Rng};
 
 use winit::window::{WindowAttributes, WindowBuilder};
 
@@ -65,24 +66,27 @@ fn main() {
 }
 
 fn draw(frame: &mut [u8]) {
-    println!("{}", frame.len() / 4);
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-        pixel[0] = 0xFF; // R
-        pixel[1] = 0x00; // G
-        pixel[2] = 0x00; // B
-        pixel[3] = 0x50; // A
+        let mut rng = rand::thread_rng();
+        let curr = rng.gen_range(0..4);
+        (pixel[3] ,pixel[2] ,pixel[1] ,pixel[0]) = get_color(curr).unwrap()
     }
 }
 
-// color -> a,r,g,b
-// struct Color(u8,u8,u8,u8);
-// fn get_color(val: u8) -> Result<Color, Error> {
-//     let res = match val {
-//         0 =>,
-//         1 =>,
-//         2 =>,
-//         3 =>,
-//         _ => Err()
+//Lightest Green: Hex #9bbc0f, RGB (155, 188, 15)
+//Light Green: Hex #8bac0f, RGB (139, 172, 15)
+//Dark Green: Hex #306230, RGB (48, 98, 48)
+//Darkest Green: Hex #0f380f, RGB (15, 56, 15)
+//color -> a,r,g,b
+#[derive(Debug)]
+struct ColorError;
 
-//     }
-// }
+fn get_color(val: u8) -> Result<(u8,u8,u8,u8), ColorError> {
+    let res = match val {
+        0 => return Ok((0xff, 155,188,15)), 
+        1 => return Ok((0xff, 139, 172, 15)),
+        2 => return Ok((0xff, 48,98,48)),
+        3 => return Ok((0xff, 15,56,15)),
+        _ => return Err(ColorError)
+    };
+}
